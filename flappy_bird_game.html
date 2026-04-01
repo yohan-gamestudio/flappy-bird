@@ -36,7 +36,7 @@ const PIPE_W = 52;
 const GAP = 145;
 const PIPE_SPEED = 2.4;
 
-let bird, pipes, score, best, state, frame, groundX;
+let bird, pipes, score, best, state, frame, groundX, deadTime;
 
 function init() {
   bird = { x: 80, y: H/2, vy: 0, w: 34, h: 26, rot: 0 };
@@ -56,18 +56,42 @@ function addPipe() {
   pipes.push({ x: W + 10, top, passed: false });
 }
 
-function jump() {
-  if (state === 'idle') { state = 'play'; }
-  if (state === 'play') { bird.vy = JUMP; }
-  if (state === 'dead') { init(); }
+function getCanvasCoords(clientX, clientY) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = W / rect.width;
+  const scaleY = H / rect.height;
+  return {
+    x: (clientX - rect.left) * scaleX,
+    y: (clientY - rect.top) * scaleY
+  };
 }
 
-canvas.addEventListener('click', jump);
+function isInRestartButton(cx, cy) {
+  const by = H/2 - 80;
+  const btnX1 = W/2 - 70, btnX2 = W/2 + 70;
+  const btnY1 = by + 120, btnY2 = by + 156;
+  return cx >= btnX1 && cx <= btnX2 && cy >= btnY1 && cy <= btnY2;
+}
+
+function jump(coords) {
+  if (state === 'idle') { state = 'play'; }
+  if (state === 'play') { bird.vy = JUMP; }
+  if (state === 'dead') {
+    if (Date.now() - deadTime <= 500) return;
+    if (coords && !isInRestartButton(coords.x, coords.y)) return;
+    init();
+  }
+}
+
+canvas.addEventListener('click', function(e) {
+  jump(getCanvasCoords(e.clientX, e.clientY));
+});
 canvas.addEventListener('touchstart', function(e) {
   e.preventDefault();
-  jump();
+  const touch = e.changedTouches[0];
+  jump(getCanvasCoords(touch.clientX, touch.clientY));
 }, { passive: false });
-document.addEventListener('keydown', e => { if (e.code === 'Space') { e.preventDefault(); jump(); } });
+document.addEventListener('keydown', e => { if (e.code === 'Space') { e.preventDefault(); jump(null); } });
 
 function scaleCanvas() {
   const availW = window.innerWidth;
@@ -124,7 +148,7 @@ function drawPipe(x, top) {
 
   ctx.fillStyle = grad1;
   roundRect(ctx, x + 2, 0, PIPE_W - 4, top - capH, r, true, false);
-  roundRect(ctx, x + 2, top - capH, PIPE_W - 4, top, 0, true, false);
+  roundRect(ctx, x + 2, top - capH, PIPE_W - 4, capH, 0, true, false);
 
   ctx.fillStyle = '#3A8C3A';
   ctx.fillRect(x + 2, 0, 6, top - capH);
@@ -313,7 +337,7 @@ function loop(ts) {
     if (pipes[pipes.length-1].x < W - 230) addPipe();
     pipes = pipes.filter(p => p.x > -PIPE_W - 20);
 
-    if (checkCollision()) { state = 'dead'; }
+    if (checkCollision()) { state = 'dead'; deadTime = Date.now(); }
   } else if (state === 'idle') {
     bird.y = H/2 + Math.sin(frame * 0.05) * 8;
     frame++;
