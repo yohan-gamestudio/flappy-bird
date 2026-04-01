@@ -1,5 +1,30 @@
-
-<canvas id="c" width="400" height="550" style="display:block;margin:0 auto;border-radius:12px;cursor:pointer;"></canvas>
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Flappy Bird</title>
+  <style>
+    html, body {
+      overflow: hidden;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      touch-action: none;
+      background: #4EC0CA;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #c {
+      display: block;
+      border-radius: 12px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+<canvas id="c" width="400" height="550"></canvas>
 <script>
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
@@ -38,7 +63,24 @@ function jump() {
 }
 
 canvas.addEventListener('click', jump);
+canvas.addEventListener('touchstart', function(e) {
+  e.preventDefault();
+  jump();
+}, { passive: false });
 document.addEventListener('keydown', e => { if (e.code === 'Space') { e.preventDefault(); jump(); } });
+
+function scaleCanvas() {
+  const availW = window.innerWidth;
+  const availH = window.innerHeight;
+  const scaleByW = availW / W;
+  const scaleByH = availH / H;
+  const scale = Math.min(scaleByW, scaleByH);
+  canvas.style.width = Math.floor(W * scale) + 'px';
+  canvas.style.height = Math.floor(H * scale) + 'px';
+}
+
+window.addEventListener('resize', scaleCanvas);
+scaleCanvas();
 
 function drawSky() {
   const sky = ctx.createLinearGradient(0, 0, 0, H - 60);
@@ -295,3 +337,5 @@ function loop(ts) {
 init();
 requestAnimationFrame(loop);
 </script>
+</body>
+</html>
